@@ -1,0 +1,22 @@
+{
+  "tests/events/test_buy_and_sell_all_outcomes.py::TestContracts::test": true, 
+  "tests/events/test_getters.py::TestContracts::test": true, 
+  "tests/events/test_redeem_winnings_for_categorical_event.py::TestContracts::test": true, 
+  "tests/events/test_redeem_winnings_for_scalar_event.py::TestContracts::test": true, 
+  "tests/market_makers/test_calc_token_count.py::TestContracts::test": true, 
+  "tests/market_makers/test_move_price_to_0.py::TestContracts::test": true, 
+  "tests/market_makers/test_move_price_to_1.py::TestContracts::test": true, 
+  "tests/markets/test_buy_and_sell.py::TestContracts::test": true, 
+  "tests/markets/test_campaign.py::TestContracts::test": true, 
+  "tests/markets/test_create_and_close.py::TestContracts::test": true, 
+  "tests/markets/test_short_sell.py::TestContracts::test": true, 
+  "tests/markets/test_unsuccessful_campaign.py::TestContracts::test": true, 
+  "tests/oracles/test_centralized_oracle.py::TestContracts::test": true, 
+  "tests/oracles/test_difficulty_oracle.py::TestContracts::test": true, 
+  "tests/oracles/test_futarchy_oracle.py::TestContracts::test": true, 
+  "tests/oracles/test_majority_oracle.py::TestContracts::test": true, 
+  "tests/oracles/test_signed_message_oracle.py::TestContracts::test": true, 
+  "tests/oracles/test_ultimate_oracle.py::TestContracts::test": true, 
+  "tests/oracles/test_ultimate_outcome_challenge_period.py::TestContracts::test": true, 
+  "tests/utils/test_math.py::TestContracts::test": true
+}

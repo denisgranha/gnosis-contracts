@@ -6,3 +6,6 @@ pytest==3.1.0
 # ethereum
 git+https://github.com/Georgi87/pyethereum.git@develop
 git+https://github.com/Georgi87/ethjsonrpc.git@master
+
+# this
+.

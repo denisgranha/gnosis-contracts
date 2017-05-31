@@ -1,0 +1,4 @@
+[console_scripts]
+gnosis-ethabi = ethabi:setup
+gnosis-ethdeploy = ethdeploy:setup
+

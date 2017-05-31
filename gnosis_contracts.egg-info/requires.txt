@@ -1,0 +1,6 @@
+requests
+click
+mpmath
+pytest
+ethereum
+ethjsonrpc

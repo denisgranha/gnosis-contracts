@@ -1,0 +1,4 @@
+include LICENSE *.md requirements.txt
+
+recursive-include assets *
+recursive-include src/gnosis_contracts *.(sol|json)
