@@ -5,12 +5,13 @@ import "Tokens/StandardToken.sol";
 /// @title Outcome token contract - Issuing and revoking outcome tokens
 /// @author Stefan George - <stefan@gnosis.pm>
 contract OutcomeToken is StandardToken {
+    using Math for *;
 
     /*
      *  Events
      */
-    event Issue(address indexed owner, uint amount);
-    event Revoke(address indexed owner, uint amount);
+    event Issuance(address indexed owner, uint amount);
+    event Revocation(address indexed owner, uint amount);
 
     /*
      *  Storage
@@ -43,9 +44,9 @@ contract OutcomeToken is StandardToken {
         public
         isEventContract
     {
-        balances[_for] = Math.add(balances[_for], outcomeTokenCount);
-        totalSupply = Math.add(totalSupply, outcomeTokenCount);
-        Issue(_for, outcomeTokenCount);
+        balances[_for] = balances[_for].add(outcomeTokenCount);
+        totalTokens = totalTokens.add(outcomeTokenCount);
+        Issuance(_for, outcomeTokenCount);
     }
 
     /// @dev Events contract revokes tokens for address. Returns success
@@ -55,8 +56,8 @@ contract OutcomeToken is StandardToken {
         public
         isEventContract
     {
-        balances[_for] = Math.sub(balances[_for], outcomeTokenCount);
-        totalSupply = Math.sub(totalSupply, outcomeTokenCount);
-        Revoke(_for, outcomeTokenCount);
+        balances[_for] = balances[_for].sub(outcomeTokenCount);
+        totalTokens = totalTokens.sub(outcomeTokenCount);
+        Revocation(_for, outcomeTokenCount);
     }
 }

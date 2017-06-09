@@ -1,17 +1,27 @@
 pragma solidity 0.4.11;
 import "Events/AbstractEvent.sol";
-import "Markets/DefaultMarketFactory.sol";
+import "Markets/StandardMarketFactory.sol";
 import "Utils/Math.sol";
 
 
 /// @title Campaign contract - Allows to crowdfund a market
 /// @author Stefan George - <stefan@gnosis.pm>
 contract Campaign {
+    using Math for *;
 
     /*
+     *  Events
+     */
+    event CampaignFunding(address indexed sender, uint funding);
+    event CampaignRefund(address indexed sender, uint refund);
+    event MarketCreation(Market indexed market);
+    event MarketClosing();
+    event FeeWithdrawal(address indexed receiver, uint fees);
+
+     /*
      *  Constants
      */
-    uint public constant FEE_RANGE = 1000000; // 100%
+    uint24 public constant FEE_RANGE = 1000000; // 100%
 
     /*
      *  Storage
@@ -20,7 +30,7 @@ contract Campaign {
     MarketFactory public marketFactory;
     MarketMaker public marketMaker;
     Market public market;
-    uint public fee;
+    uint24 public fee;
     uint public funding;
     uint public deadline;
     uint public finalBalance;
@@ -64,7 +74,7 @@ contract Campaign {
         Event _eventContract,
         MarketFactory _marketFactory,
         MarketMaker _marketMaker,
-        uint _fee,
+        uint24 _fee,
         uint _funding,
         uint _deadline
     )
@@ -93,14 +103,15 @@ contract Campaign {
         atStage(Stages.AuctionStarted)
     {
         uint raisedAmount = eventContract.collateralToken().balanceOf(this);
-        uint maxAmount = funding - raisedAmount;
+        uint maxAmount = funding.sub(raisedAmount);
         if (maxAmount < amount)
             amount = maxAmount;
         // Collect collateral tokens
         require(eventContract.collateralToken().transferFrom(msg.sender, this, amount));
-        contributions[msg.sender] = Math.add(contributions[msg.sender], amount);
+        contributions[msg.sender] = contributions[msg.sender].add(amount);
         if (amount == maxAmount)
             stage = Stages.AuctionSuccessful;
+        CampaignFunding(msg.sender, amount);
     }
 
     /// @dev Withdraws refund amount
@@ -115,10 +126,11 @@ contract Campaign {
         contributions[msg.sender] = 0;
         // Refund collateral tokens
         require(eventContract.collateralToken().transfer(msg.sender, refundAmount));
+        CampaignRefund(msg.sender, refundAmount);
     }
 
     /// @dev Allows to create market after successful funding
-    /// @return Returns market address
+    /// @return Market address
     function createMarket()
         public
         timedTransitions
@@ -129,34 +141,37 @@ contract Campaign {
         require(eventContract.collateralToken().approve(market, funding));
         market.fund(funding);
         stage = Stages.MarketCreated;
+        MarketCreation(market);
         return market;
     }
 
     /// @dev Allows to withdraw fees from market contract to campaign contract
     /// @return Fee amount
-    function withdrawFeesFromMarket()
+    function closeMarket()
         public
         atStage(Stages.MarketCreated)
     {
         // Winning outcome should be set
-        require(eventContract.isWinningOutcomeSet());
+        require(eventContract.isOutcomeSet());
         market.close();
         market.withdrawFees();
         eventContract.redeemWinnings();
         finalBalance = eventContract.collateralToken().balanceOf(this);
         stage = Stages.MarketClosed;
+        MarketClosing();
     }
 
     /// @dev Allows to withdraw fees from campaign contract to contributor
     /// @return Fee amount
-    function withdrawFeesFromCampaign()
+    function withdrawFees()
         public
         atStage(Stages.MarketClosed)
         returns (uint fees)
     {
-        fees = Math.mul(finalBalance, contributions[msg.sender]) / funding;
+        fees = finalBalance.mul(contributions[msg.sender]) / funding;
         contributions[msg.sender] = 0;
         // Send fee share to contributor
         require(eventContract.collateralToken().transfer(msg.sender, fees));
+        FeeWithdrawal(msg.sender, fees);
     }
 }

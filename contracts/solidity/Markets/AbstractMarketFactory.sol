@@ -7,7 +7,13 @@ import "Markets/AbstractMarket.sol";
 /// @title Abstract market factory contract - Functions to be implemented by market factories
 contract MarketFactory {
 
-    event MarketCreation(address indexed creator, Market market, Event eventContract, MarketMaker marketMaker, uint fee);
+    /*
+     *  Events
+     */
+    event MarketCreation(address indexed creator, Market market, Event eventContract, MarketMaker marketMaker, uint24 fee);
 
-    function createMarket(Event eventContract, MarketMaker marketMaker, uint fee) public returns (Market);
+    /*
+     *  Public functions
+     */
+    function createMarket(Event eventContract, MarketMaker marketMaker, uint24 fee) public returns (Market);
 }

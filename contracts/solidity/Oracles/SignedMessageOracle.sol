@@ -7,6 +7,12 @@ import "Oracles/AbstractOracle.sol";
 contract SignedMessageOracle is Oracle {
 
     /*
+     *  Events
+     */
+    event SignerReplacement(address indexed newSigner);
+    event OutcomeAssignment(int outcome);
+
+    /*
      *  Storage
      */
     address public signer;
@@ -40,21 +46,22 @@ contract SignedMessageOracle is Oracle {
     }
 
     /// @dev Replaces signer
-    /// @param _signer New signer
+    /// @param newSigner New signer
     /// @param _nonce Unique nonce to prevent replay attacks
     /// @param v Signature parameter
     /// @param r Signature parameter
     /// @param s Signature parameter
-    function replaceSigner(address _signer, uint _nonce, uint8 v, bytes32 r, bytes32 s)
+    function replaceSigner(address newSigner, uint _nonce, uint8 v, bytes32 r, bytes32 s)
         public
         isSigner
     {
         // Result is not set yet and nonce and signer are valid
         require(   !isSet
                 && _nonce > nonce
-                && signer == ecrecover(keccak256(descriptionHash, _signer, _nonce), v, r, s));
+                && signer == ecrecover(keccak256(descriptionHash, newSigner, _nonce), v, r, s));
         nonce = _nonce;
-        signer = _signer;
+        signer = newSigner;
+        SignerReplacement(newSigner);
     }
 
     /// @dev Sets outcome based on signed message
@@ -70,10 +77,11 @@ contract SignedMessageOracle is Oracle {
                 && signer == ecrecover(keccak256(descriptionHash, _outcome), v, r, s));
         isSet = true;
         outcome = _outcome;
+        OutcomeAssignment(_outcome);
     }
 
-    /// @dev Returns if winning outcome is set for given event
-    /// @return Returns if outcome is set
+    /// @dev Returns if winning outcome
+    /// @return Is outcome set?
     function isOutcomeSet()
         public
         constant
@@ -82,8 +90,8 @@ contract SignedMessageOracle is Oracle {
         return isSet;
     }
 
-    /// @dev Returns winning outcome for given event
-    /// @return Returns outcome
+    /// @dev Returns winning outcome
+    /// @return Outcome
     function getOutcome()
         public
         constant

@@ -5,13 +5,14 @@ import "Events/AbstractEvent.sol";
 /// @title Scalar event contract - Scalar events resolve to a number within a range
 /// @author Stefan George - <stefan@gnosis.pm>
 contract ScalarEvent is Event {
+    using Math for *;
 
     /*
      *  Constants
      */
     uint8 public constant SHORT = 0;
     uint8 public constant LONG = 1;
-    uint16 public constant OUTCOME_RANGE = 10000;
+    uint24 public constant OUTCOME_RANGE = 1000000;
 
     /*
      *  Storage
@@ -42,39 +43,40 @@ contract ScalarEvent is Event {
         upperBound = _upperBound;
     }
 
-    /// @dev Exchanges user's winning outcome tokens for collateral tokens
-    /// @return Returns user's winnings
+    /// @dev Exchanges sender's winning outcome tokens for collateral tokens
+    /// @return Sender's winnings
     function redeemWinnings()
         public
         returns (uint winnings)
     {
-        // Winning outcome should not be set yet
-        require(isWinningOutcomeSet);
+        // Winning outcome has to be set
+        require(isOutcomeSet);
         // Calculate winnings
-        uint16 convertedWinningOutcome;
+        uint24 convertedWinningOutcome;
         // Outcome is lower than defined lower bound
-        if (winningOutcome < lowerBound)
+        if (outcome < lowerBound)
             convertedWinningOutcome = 0;
         // Outcome is higher than defined upper bound
-        else if (winningOutcome > upperBound)
+        else if (outcome > upperBound)
             convertedWinningOutcome = OUTCOME_RANGE;
         // Map outcome to outcome range
         else
-            convertedWinningOutcome = uint16(OUTCOME_RANGE * (winningOutcome - lowerBound) / (upperBound - lowerBound));
+            convertedWinningOutcome = uint24(OUTCOME_RANGE * (outcome - lowerBound) / (upperBound - lowerBound));
         uint factorShort = OUTCOME_RANGE - convertedWinningOutcome;
         uint factorLong = OUTCOME_RANGE - factorShort;
         uint shortOutcomeTokenCount = outcomeTokens[SHORT].balanceOf(msg.sender);
         uint longOutcomeTokenCount = outcomeTokens[LONG].balanceOf(msg.sender);
-        winnings = Math.add(Math.mul(shortOutcomeTokenCount, factorShort), Math.mul(longOutcomeTokenCount, factorLong)) / OUTCOME_RANGE;
-        // Revoke all tokens of all outcomes
+        winnings = shortOutcomeTokenCount.mul(factorShort).add(longOutcomeTokenCount.mul(factorLong)) / OUTCOME_RANGE;
+        // Revoke all outcome tokens
         outcomeTokens[SHORT].revoke(msg.sender, shortOutcomeTokenCount);
         outcomeTokens[LONG].revoke(msg.sender, longOutcomeTokenCount);
-        // Payout winnings
+        // Payout winnings to sender
         require(collateralToken.transfer(msg.sender, winnings));
+        WinningsRedemption(msg.sender, winnings);
     }
 
     /// @dev Calculates and returns event hash
-    /// @return Returns event hash
+    /// @return Event hash
     function getEventHash()
         public
         constant

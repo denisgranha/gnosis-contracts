@@ -7,6 +7,19 @@ import "Markets/AbstractMarketFactory.sol";
 /// @title Futarchy oracle contract - Allows to create an oracle based on market behaviour
 /// @author Stefan George - <stefan@gnosis.pm>
 contract FutarchyOracle is Oracle {
+    using Math for *;
+
+    /*
+     *  Events
+     */
+    event FutarchyFunding(uint funding);
+    event FutarchyClosing();
+    event OutcomeAssignment(uint winningMarketIndex);
+
+    /*
+     *  Constants
+     */
+    uint8 public constant LONG = 1;
 
     /*
      *  Storage
@@ -15,7 +28,7 @@ contract FutarchyOracle is Oracle {
     Market[] public markets;
     CategoricalEvent public categoricalEvent;
     uint public deadline;
-    int public outcome;
+    uint public winningMarketIndex;
     bool public isSet;
 
     /*
@@ -52,7 +65,7 @@ contract FutarchyOracle is Oracle {
         int upperBound,
         MarketFactory marketFactory,
         MarketMaker marketMaker,
-        uint fee,
+        uint24 fee,
         uint _deadline
     )
         public
@@ -62,7 +75,7 @@ contract FutarchyOracle is Oracle {
         // Create decision event
         categoricalEvent = eventFactory.createCategoricalEvent(collateralToken, this, outcomeCount);
         // Create outcome events
-        for (uint8 i=0; i<categoricalEvent.getOutcomeCount(); i++) {
+        for (uint8 i = 0; i < categoricalEvent.getOutcomeCount(); i++) {
             ScalarEvent scalarEvent = eventFactory.createScalarEvent(
                 categoricalEvent.outcomeTokens(i),
                 oracle,
@@ -86,12 +99,13 @@ contract FutarchyOracle is Oracle {
                 && categoricalEvent.collateralToken().approve(categoricalEvent, funding));
         categoricalEvent.buyAllOutcomes(funding);
         // Fund each market with outcome tokens from categorical event
-        for (uint8 i=0; i<markets.length; i++) {
+        for (uint8 i = 0; i < markets.length; i++) {
             Market market = markets[i];
             // Approve funding for market
             require(market.eventContract().collateralToken().approve(market, funding));
             market.fund(funding);
         }
+        FutarchyFunding(funding);
     }
 
     /// @dev Closes market for winning outcome and redeems winnings and sends all collateral tokens to creator
@@ -101,7 +115,7 @@ contract FutarchyOracle is Oracle {
     {
         // Winning outcome has to be set
         Market market = markets[uint(getOutcome())];
-        require(categoricalEvent.isWinningOutcomeSet() && market.eventContract().isWinningOutcomeSet());
+        require(categoricalEvent.isOutcomeSet() && market.eventContract().isOutcomeSet());
         // Close market and transfer all outcome tokens from winning outcome to this contract
         market.close();
         market.eventContract().redeemWinnings();
@@ -109,17 +123,7 @@ contract FutarchyOracle is Oracle {
         // Redeem collateral token for winning outcome tokens and transfer collateral tokens to creator
         categoricalEvent.redeemWinnings();
         require(categoricalEvent.collateralToken().transfer(creator, categoricalEvent.collateralToken().balanceOf(this)));
-    }
-
-    /// @dev Returns the amount of outcome tokens held by market
-    /// @return Outcome token distribution
-    function getOutcomeTokenDistribution(Market market)
-        public
-        returns (uint[] outcomeTokenDistribution)
-    {
-        outcomeTokenDistribution = new uint[](2);
-        for (uint i=0; i<outcomeTokenDistribution.length; i++)
-            outcomeTokenDistribution[i] = market.eventContract().outcomeTokens(i).balanceOf(market);
+        FutarchyClosing();
     }
 
     /// @dev Allows to set the oracle outcome based on the market with largest long position
@@ -128,20 +132,23 @@ contract FutarchyOracle is Oracle {
     {
         // Outcome is not set yet and deadline has passed
         require(!isSet && deadline <= now);
-        uint[] memory outcomeTokenDistribution = getOutcomeTokenDistribution(markets[0]);
-        uint highest = outcomeTokenDistribution[0] - outcomeTokenDistribution[1];
-        int highestIndex = 0;
-        for (uint8 i=1; i<markets.length; i++) {
-            outcomeTokenDistribution = getOutcomeTokenDistribution(markets[i]);
-            if ((outcomeTokenDistribution[0] - outcomeTokenDistribution[1]) > highest)
+        // Find market with highest marginal price for long outcome tokens
+        uint highestMarginalPrice = markets[0].marketMaker().calcMarginalPrice(markets[0], LONG);
+        uint highestIndex = 0;
+        for (uint8 i = 1; i < markets.length; i++) {
+            uint marginalPrice = markets[i].marketMaker().calcMarginalPrice(markets[i], LONG);
+            if (marginalPrice > highestMarginalPrice) {
+                highestMarginalPrice = marginalPrice;
                 highestIndex = i;
+            }
         }
-        outcome = highestIndex;
+        winningMarketIndex = highestIndex;
         isSet = true;
+        OutcomeAssignment(winningMarketIndex);
     }
 
-    /// @dev Returns if winning outcome is set for given event
-    /// @return Returns if outcome is set
+    /// @dev Returns if winning outcome is set
+    /// @return Is outcome set?
     function isOutcomeSet()
         public
         constant
@@ -150,13 +157,13 @@ contract FutarchyOracle is Oracle {
         return isSet;
     }
 
-    /// @dev Returns winning outcome for given event
-    /// @return Returns outcome
+    /// @dev Returns winning outcome
+    /// @return Outcome
     function getOutcome()
         public
         constant
         returns (int)
     {
-        return outcome;
+        return int(winningMarketIndex);
     }
 }

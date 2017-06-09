@@ -10,10 +10,10 @@ class TestContracts(AbstractTestContracts):
         self.math = self.create_contract('Utils/Math.sol')
         self.event_factory = self.create_contract('Events/EventFactory.sol', libraries={'Math': self.math})
         self.centralized_oracle_factory = self.create_contract('Oracles/CentralizedOracleFactory.sol')
-        self.market_factory = self.create_contract('Markets/DefaultMarketFactory.sol')
+        self.market_factory = self.create_contract('Markets/StandardMarketFactory.sol', libraries={'Math': self.math})
         self.lmsr = self.create_contract('MarketMakers/LMSRMarketMaker.sol', libraries={'Math': self.math})
         self.token_abi = self.create_abi('Tokens/AbstractToken.sol')
-        self.market_abi = self.create_abi('Markets/DefaultMarket.sol')
+        self.market_abi = self.create_abi('Markets/StandardMarket.sol')
         self.event_abi = self.create_abi('Events/AbstractEvent.sol')
 
     @staticmethod
@@ -53,9 +53,9 @@ class TestContracts(AbstractTestContracts):
             ether_token.approve(market.address, funding, sender=keys[investor])
             market.fund(funding, sender=keys[investor])
             self.assertEqual(ether_token.balanceOf(accounts[investor]), 0)
-            # Calculating costs for buying shares and earnings for selling shares
+            # Calculating cost for buying shares and earnings for selling shares
             outcome = 1
-            actual = self.lmsr.calcCosts(market.address, outcome, outcome_token_count)
+            actual = self.lmsr.calcCost(market.address, outcome, outcome_token_count)
             expected = self.calc_cost(funding, [0, 0], outcome, outcome_token_count)
             assert (
                 (funding, outcome_token_count) is not None and

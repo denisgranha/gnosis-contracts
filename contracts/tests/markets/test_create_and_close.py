@@ -1,4 +1,4 @@
-from ..abstract_test import AbstractTestContracts, accounts, keys
+from ..abstract_test import AbstractTestContracts, accounts, keys, TransactionFailed
 
 
 class TestContracts(AbstractTestContracts):
@@ -8,11 +8,11 @@ class TestContracts(AbstractTestContracts):
         self.math = self.create_contract('Utils/Math.sol')
         self.event_factory = self.create_contract('Events/EventFactory.sol', libraries={'Math': self.math})
         self.centralized_oracle_factory = self.create_contract('Oracles/CentralizedOracleFactory.sol')
-        self.market_factory = self.create_contract('Markets/DefaultMarketFactory.sol')
+        self.market_factory = self.create_contract('Markets/StandardMarketFactory.sol', libraries={'Math': self.math})
         self.lmsr = self.create_contract('MarketMakers/LMSRMarketMaker.sol', libraries={'Math': self.math})
         self.ether_token = self.create_contract('Tokens/EtherToken.sol', libraries={'Math': self.math})
         self.token_abi = self.create_abi('Tokens/AbstractToken.sol')
-        self.market_abi = self.create_abi('Markets/DefaultMarket.sol')
+        self.market_abi = self.create_abi('Markets/StandardMarket.sol')
         self.event_abi = self.create_abi('Events/AbstractEvent.sol')
 
     def test(self):
@@ -30,8 +30,16 @@ class TestContracts(AbstractTestContracts):
         self.assertEqual(self.ether_token.balanceOf(accounts[buyer]), funding)
         self.ether_token.approve(market.address, funding, sender=keys[buyer])
         market.fund(funding, sender=keys[buyer])
-        self.assertEqual(self.ether_token.balanceOf(accounts[buyer]), 0)
+        # Market can only be funded once
+        self.ether_token.deposit(value=funding, sender=keys[buyer])
+        self.assertEqual(self.ether_token.balanceOf(accounts[buyer]), funding)
+        self.ether_token.approve(market.address, funding, sender=keys[buyer])
+        self.assertRaises(TransactionFailed, market.fund, funding, sender=keys[buyer])
+        self.assertEqual(self.ether_token.balanceOf(accounts[buyer]), funding)
         # Close market
         market.close(sender=keys[buyer])
+        # Market can only be closed once
+        self.assertRaises(TransactionFailed, market.close, sender=keys[buyer])
+        # Sell all outcomes
         event.sellAllOutcomes(funding, sender=keys[buyer])
-        self.assertEqual(self.ether_token.balanceOf(accounts[buyer]), funding)
+        self.assertEqual(self.ether_token.balanceOf(accounts[buyer]), funding * 2)

@@ -19,7 +19,7 @@ contract FutarchyOracleFactory {
         int upperBound,
         MarketFactory marketFactory,
         MarketMaker marketMaker,
-        uint fee,
+        uint24 fee,
         uint deadline
     );
 
@@ -50,7 +50,7 @@ contract FutarchyOracleFactory {
     /// @param marketMaker Market maker contract
     /// @param fee Market fee
     /// @param deadline Decision deadline
-    /// @return Returns oracle contract
+    /// @return Oracle contract
     function createFutarchyOracle(
         Token collateralToken,
         Oracle oracle,
@@ -59,7 +59,7 @@ contract FutarchyOracleFactory {
         int upperBound,
         MarketFactory marketFactory,
         MarketMaker marketMaker,
-        uint fee,
+        uint24 fee,
         uint deadline
     )
         public

@@ -2,7 +2,7 @@ pragma solidity 0.4.11;
 import "Events/AbstractEvent.sol";
 
 
-/// @title Categorical event contract - Categorical events resolve to an outcome from a list of outcomes
+/// @title Categorical event contract - Categorical events resolve to an outcome from a set of outcomes
 /// @author Stefan George - <stefan@gnosis.pm>
 contract CategoricalEvent is Event {
 
@@ -24,24 +24,25 @@ contract CategoricalEvent is Event {
 
     }
 
-    /// @dev Exchanges user's winning outcome tokens for collateral tokens
-    /// @return Returns user's winnings
+    /// @dev Exchanges sender's winning outcome tokens for collateral tokens
+    /// @return Sender's winnings
     function redeemWinnings()
         public
         returns (uint winnings)
     {
         // Winning outcome has to be set
-        require(isWinningOutcomeSet);
+        require(isOutcomeSet);
         // Calculate winnings
-        winnings = outcomeTokens[uint(winningOutcome)].balanceOf(msg.sender);
+        winnings = outcomeTokens[uint(outcome)].balanceOf(msg.sender);
         // Revoke tokens from winning outcome
-        outcomeTokens[uint(winningOutcome)].revoke(msg.sender, winnings);
+        outcomeTokens[uint(outcome)].revoke(msg.sender, winnings);
         // Payout winnings
         require(collateralToken.transfer(msg.sender, winnings));
+        WinningsRedemption(msg.sender, winnings);
     }
 
     /// @dev Calculates and returns event hash
-    /// @return Returns event hash
+    /// @return Event hash
     function getEventHash()
         public
         constant

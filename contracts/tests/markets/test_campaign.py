@@ -8,12 +8,12 @@ class TestContracts(AbstractTestContracts):
         self.math = self.create_contract('Utils/Math.sol')
         self.event_factory = self.create_contract('Events/EventFactory.sol', libraries={'Math': self.math})
         self.centralized_oracle_factory = self.create_contract('Oracles/CentralizedOracleFactory.sol')
-        self.market_factory = self.create_contract('Markets/DefaultMarketFactory.sol')
+        self.market_factory = self.create_contract('Markets/StandardMarketFactory.sol', libraries={'Math': self.math})
         self.campaign_factory = self.create_contract('Markets/CampaignFactory.sol', libraries={'Math': self.math})
         self.lmsr = self.create_contract('MarketMakers/LMSRMarketMaker.sol', libraries={'Math': self.math})
         self.ether_token = self.create_contract('Tokens/EtherToken.sol', libraries={'Math': self.math})
         self.token_abi = self.create_abi('Tokens/AbstractToken.sol')
-        self.market_abi = self.create_abi('Markets/DefaultMarket.sol')
+        self.market_abi = self.create_abi('Markets/StandardMarket.sol')
         self.event_abi = self.create_abi('Events/AbstractEvent.sol')
         self.oracle_abi = self.create_abi('Oracles/CentralizedOracle.sol')
         self.campaign_abi = self.create_abi('Markets/Campaign.sol')
@@ -50,23 +50,23 @@ class TestContracts(AbstractTestContracts):
         buyer = 2
         outcome = 0
         token_count = 10 ** 15
-        outcome_token_costs = self.lmsr.calcCosts(market.address, outcome, token_count)
-        fee = market.calcMarketFee(outcome_token_costs)
-        self.assertEqual(fee, outcome_token_costs * 105 // 100 - outcome_token_costs)
-        costs = outcome_token_costs + fee
-        self.ether_token.deposit(value=costs, sender=keys[buyer])
-        self.assertEqual(self.ether_token.balanceOf(accounts[buyer]), costs)
-        self.ether_token.approve(market.address, costs, sender=keys[buyer])
-        self.assertEqual(market.buy(outcome, token_count, costs, sender=keys[buyer]), costs)
+        outcome_token_cost = self.lmsr.calcCost(market.address, outcome, token_count)
+        fee = market.calcMarketFee(outcome_token_cost)
+        self.assertEqual(fee, outcome_token_cost * 105 // 100 - outcome_token_cost)
+        cost = outcome_token_cost + fee
+        self.ether_token.deposit(value=cost, sender=keys[buyer])
+        self.assertEqual(self.ether_token.balanceOf(accounts[buyer]), cost)
+        self.ether_token.approve(market.address, cost, sender=keys[buyer])
+        self.assertEqual(market.buy(outcome, token_count, cost, sender=keys[buyer]), cost)
         # Set outcome
         oracle.setOutcome(1)
-        event.setWinningOutcome()
+        event.setOutcome()
         # Withdraw fees
-        campaign.withdrawFeesFromMarket()
+        campaign.closeMarket()
         final_balance = campaign.finalBalance()
         self.assertGreater(final_balance, funding)
-        self.assertEqual(campaign.withdrawFeesFromCampaign(sender=keys[backer_1]) // 100, final_balance // 4 * 3 // 100)
-        self.assertEqual(campaign.withdrawFeesFromCampaign(sender=keys[backer_2]) // 100, final_balance // 4 // 100)
+        self.assertEqual(campaign.withdrawFees(sender=keys[backer_1]) // 100, final_balance // 4 * 3 // 100)
+        self.assertEqual(campaign.withdrawFees(sender=keys[backer_2]) // 100, final_balance // 4 // 100)
         # Withdraw works only once
-        self.assertEqual(campaign.withdrawFeesFromCampaign(sender=keys[backer_1]), 0)
-        self.assertEqual(campaign.withdrawFeesFromCampaign(sender=keys[backer_2]), 0)
+        self.assertEqual(campaign.withdrawFees(sender=keys[backer_1]), 0)
+        self.assertEqual(campaign.withdrawFees(sender=keys[backer_2]), 0)
