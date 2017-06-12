@@ -172,6 +172,8 @@ class EthDeploy:
         self.abis[contract_address] = abi
         self.log('Contract {} created at address {}'.format(label if label else 'unknown',
                                                             self.add_0x(contract_address)))
+
+        self.deployed_contracts.update({label: self.add_0x(contract_address)})
         self.log_transaction_receipt(transaction_receipt)
 
     def send_transaction(self, _from, to, value, name, params, abi):
@@ -285,6 +287,11 @@ class EthDeploy:
         for reference, value in self.references.items():
             self.log('{} references {}'.format(reference, self.add_0x(value) if isinstance(value, unicode) else value))
         self.log('-' * 96)
+
+        # save contracts dict to json file
+        out_file = open("contracts.json","w")
+        out_file.write(json.dumps(self.references))
+        out_file.close()
 
 
 @click.command()

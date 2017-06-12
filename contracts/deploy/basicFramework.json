@@ -32,5 +32,9 @@
     "libraries": {
       "Math": "Math"
     }
+  },
+  {
+    "type": "deployment",
+    "file": "Markets/StandardMarketFactory.sol"
   }
 ]
