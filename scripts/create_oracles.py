@@ -171,7 +171,8 @@ class Contract(object):
         event_description_json = {
             'title':'Test title',
             'description': 'test long description',
-            'resolution_date': datetime.now().isoformat()
+            'resolution_date': datetime.now().isoformat(),
+            'outcomes': ['YES', 'NO']
         }
 
         ipfs_hash = self.ipfs_api.add_json(event_description_json)
@@ -247,5 +248,3 @@ def setup(testrpc_host, testrpc_port, ipfs_host, ipfs_port, gas):
 
 if __name__=='__main__':
     setup()
-
-
