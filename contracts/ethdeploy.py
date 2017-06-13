@@ -173,7 +173,6 @@ class EthDeploy:
         self.log('Contract {} created at address {}'.format(label if label else 'unknown',
                                                             self.add_0x(contract_address)))
 
-        self.deployed_contracts.update({label: self.add_0x(contract_address)})
         self.log_transaction_receipt(transaction_receipt)
 
     def send_transaction(self, _from, to, value, name, params, abi):
