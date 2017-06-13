@@ -71,8 +71,11 @@ Vagrant.configure(2) do |config|
       v.cpus = 2
   end
 
+  config.vm.network "private_network", ip: "176.16.0.3"
   config.ssh.forward_agent = true
   config.vm.network :forwarded_port, host: 8545, guest: 8545
+  config.vm.network :forwarded_port, host: 4000, guest: 4000
+  config.vm.network :forwarded_port, host: 5001, guest: 5001
 
   config.vm.provision "shell", inline: $dependencies
   config.vm.provision "shell", inline: $ethereumcpp
